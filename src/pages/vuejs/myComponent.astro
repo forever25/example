@@ -1,0 +1,54 @@
+<div></div>
+
+<script>
+  const MyComponent = {
+    render() {
+      return {
+        tag: 'div',
+        props: {
+          onClick: () => alert('hello'),
+        },
+        children: 'click me',
+      };
+    },
+  };
+
+  const vnode = {
+    tag: MyComponent,
+  };
+
+  function renderer(vnode, container: HTMLElement) {
+    if (typeof vnode.tag === 'string') {
+      mountElement(vnode, container);
+    } else if (typeof vnode.tag === 'object') {
+      mountComponent(vnode, container);
+    }
+  }
+
+  function mountElement(vnode, container: HTMLElement) {
+    // 使用 vnode.tag 作为标签名称创建 DOM 元素
+    const el = document.createElement(vnode.tag) as unknown as HTMLElement;
+    // 遍历 vnode.props，将属性、事件添加到 DOM 元素
+    for (let key in vnode.props) {
+      // 以on开头是事件
+      if (/^on/.test(key)) {
+        el.addEventListener(key.substring(2).toLocaleLowerCase(), vnode.props[key]);
+      }
+    }
+
+    // 处理 vnode.children
+    if (typeof vnode.children === 'string') {
+      el.appendChild(document.createTextNode(vnode.children));
+    } else if (Array.isArray(vnode.children)) {
+      vnode.children.forEach((child) => renderer(child, el));
+    }
+    container.appendChild(el);
+  }
+
+  function mountComponent(vnode, container: HTMLElement) {
+    const subtree = vnode.tag.render();
+    renderer(subtree, container);
+  }
+
+  renderer(vnode, document.body);
+</script>

@@ -1,0 +1,75 @@
+---
+import Layout from '@layouts/Layout.astro';
+---
+
+<Layout>
+  <canvas id="example" width="800" height="800" class="border mx-auto mt-11"> </canvas>
+</Layout>
+
+<script>
+  import { initShaders } from '@libs/webgl-utils';
+
+  const VSHADER_SOURCE = `
+attribute vec4  a_Position;
+void main() {
+  gl_Position = a_Position;
+  gl_PointSize = 20.0;
+}
+`;
+
+  const FSHADER_SOURCE = `
+precision mediump float; 
+uniform vec4 u_FragColor;
+void main() {
+  gl_FragColor = u_FragColor;
+}
+`;
+
+  const g_points: any = [];
+  const g_colors: any = [];
+
+  function main() {
+    const canvas = document.querySelector('#example') as HTMLCanvasElement;
+    const gl = canvas.getContext('webgl')!;
+    const program = initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE);
+    const a_Position = gl.getAttribLocation(program, 'a_Position');
+    const u_FragColor = gl.getUniformLocation(program, 'u_FragColor');
+
+    canvas.onmousedown = (ev) => {
+      onClick(ev, gl, canvas, a_Position, u_FragColor);
+    };
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+
+  function onClick(
+    ev: MouseEvent,
+    gl: WebGLRenderingContext,
+    canvas: HTMLCanvasElement,
+    a_Position: number,
+    u_FragColor: WebGLUniformLocation | null
+  ) {
+    const { clientX, clientY } = ev;
+    const el = ev.target as HTMLCanvasElement;
+    const rect = el.getBoundingClientRect();
+    if (rect) {
+      const x = (clientX - rect.left - canvas.height / 2) / (canvas.height / 2);
+      const y = (canvas.width / 2 - (clientY - rect.top)) / (canvas.width / 2);
+      g_points.push(x);
+      g_points.push(y);
+      if (x > 0 || y > 0) {
+        g_colors.push([1.0, 0.0, 0.0, 1.0]);
+      } else {
+        g_colors.push([1.0, 1.0, 0.0, 1.0]);
+      }
+
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      for (let i = 0; i < g_points.length; i += 2) {
+        gl.vertexAttrib3f(a_Position, g_points[i], g_points[i + 1], 0.0);
+        gl.uniform4f(u_FragColor, g_colors[i / 2][0], g_colors[i / 2][1], g_colors[i / 2][2], g_colors[i / 2][3]);
+        gl.drawArrays(gl.POINTS, 0, 1);
+      }
+    }
+  }
+
+  main();
+</script>

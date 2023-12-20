@@ -1,0 +1,54 @@
+---
+import Layout from "@layouts/Layout.astro";
+---
+
+<Layout>
+  <canvas id="example" width="800" height="800" class="border mx-auto mt-11">
+  </canvas>
+</Layout>
+
+<script>
+import { initShaders } from '@libs/webgl-utils';
+
+const VSHADER_SOURCE = `
+attribute vec4  a_Position;
+void main() {
+  gl_Position = a_Position;
+}
+`
+
+const FSHADER_SOURCE = `
+void main() {
+  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+`
+let program: WebGLProgram
+function main() {
+  const canvas = document.querySelector('#example') as HTMLCanvasElement
+  const gl = canvas.getContext('webgl')!
+
+  program = initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+  const n = initVertexBuffers(gl)
+  gl.clear(gl.COLOR_BUFFER_BIT)
+  gl.drawArrays(gl.TRIANGLES, 0, n)
+}
+
+function initVertexBuffers(gl: WebGLRenderingContext) {
+  const vertices = new Float32Array([0, 0.5, -0.5, -0.5, 0.5, -0.5])
+  const n = 3
+  const vertexBuffers = gl.createBuffer()
+  if (!vertexBuffers) {
+    return -1
+  }
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffers)
+
+  gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+  const aPosition = gl.getAttribLocation(program, 'a_Position')
+  gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0)
+  gl.enableVertexAttribArray(aPosition)
+  return n
+}
+
+main();
+</script>

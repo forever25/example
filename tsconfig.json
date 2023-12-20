@@ -32,7 +32,7 @@
       ]
     },
     "types": [
-      "./types/**.d.ts"
+      "./types/**.d.ts","@types/node"
     ]
   }
 }

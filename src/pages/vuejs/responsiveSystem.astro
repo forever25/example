@@ -1,0 +1,85 @@
+<div></div>
+
+<script>
+  const bucket = new WeakMap<Object, any>();
+  let activeEffect: Function;
+
+  const data: { [key in string | symbol]: any } = { text: 'hello world', ok: true };
+  const obj = new Proxy(data, {
+    get(target, key) {
+      track(target, key);
+
+      return target[key];
+    },
+    set(target, key, newVal) {
+      trigger(target, key);
+
+      target[key] = newVal;
+      return true;
+    },
+  });
+
+  function effect(fn: Function) {
+    const effectFn = () => {
+      // 函数清除工作
+      cleanup(effectFn);
+      // 当调用 effect 注册副作用函数时，将副作用函数 fn 赋值给 activeEffect
+      activeEffect = effectFn;
+      // 执行副作用函数
+      fn();
+    };
+    effectFn.deps = [];
+    effectFn();
+  }
+
+  function track(target, key) {
+    if (!activeEffect) return;
+
+    let depsMap = bucket.get(target);
+    if (!depsMap) {
+      bucket.set(target, (depsMap = new Map()));
+    }
+    let deps = depsMap.get(key);
+    if (!deps) {
+      depsMap.set(key, (deps = new Set()));
+    }
+
+    deps.add(activeEffect);
+
+    activeEffect.deps.push(deps);
+  }
+
+  function trigger(target, key) {
+    let depsMap = bucket.get(target);
+    if (!depsMap) return;
+    const effects = depsMap.get(key);
+    const effectsToRun = new Set<any>(effects);
+    effectsToRun.forEach((fn) => fn());
+  }
+
+  function cleanup(effectFn) {
+    for (let i = 0; i < effectFn.deps.length; i++) {
+      const deps = effectFn.deps[i];
+      deps.delete(effectFn);
+    }
+    effectFn.deps.length = 0;
+  }
+
+  effect(() => {
+    document.body.innerHTML = obj.ok ? obj.text : 'not';
+  });
+
+  setTimeout(() => {
+    obj.text = 'hello vue';
+  }, 1000);
+
+  setTimeout(() => {
+    obj.ok = false;
+  }, 2000);
+
+  setTimeout(() => {
+    obj.text = 'hello vue';
+  }, 2900);
+
+  window.obj = obj;
+</script>
