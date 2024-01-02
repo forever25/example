@@ -1,0 +1,21 @@
+---
+interface Props {
+  title:string
+}
+
+const {title = ''} = Astro.props
+---
+
+<!doctype html>
+<html lang="cn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="shortcut icon" href="/favicon.svg" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
