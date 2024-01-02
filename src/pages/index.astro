@@ -4,34 +4,47 @@ import fs from 'fs';
 import path from 'path';
 import { clearExtension } from '@utils/mUtils';
 
+// 读取目录
 const pageFiles = fs.readdirSync(path.resolve('./src/pages'));
 const pageDirs = pageFiles.filter((page) => !page.includes('.'));
 
+// 根据目录获取文件
 const files = pageDirs.map((dir) => {
   return fs.readdirSync(path.resolve('./src/pages', dir));
 });
 
+// 获取页面配置
+function getPageTitle(parent: string, url: string) {
+  const data = fs.readFileSync(path.resolve('./src/pages', parent, url), 'utf8');
+  const re = /<!--.+-->/.exec(data);
+  if (re) {
+    return re[0].split(' ')[1];
+  }
+
+  return clearExtension(url);
+}
+
 function getAstroUrl(...astro: string[]) {
-  return `${astro.slice(0,astro.length -1 )}/${clearExtension(astro.at(-1))}`;
+  return `${astro.slice(0, astro.length - 1)}/${clearExtension(astro.at(-1))}`;
 }
 ---
 
 <Layout>
   <div class="mx-auto mt-10 w-[800px]">
     {
-      pageDirs.map((it, index) => (
+      pageDirs.map((dir, index) => (
         <>
-          <h1 class="text-4xl my-3">{it}</h1>
+          <h1 class="text-4xl my-3">{dir}</h1>
           <ul class="flex flex-wrap">
             {files[index].map((astro) => (
               <>
                 <li class="mx-3 my-1">
                   <a
                     class="text-blue-800 hover:text-blue-500 decoration-blue-500 hover:underline"
-                    href={getAstroUrl(it, astro)}
+                    href={getAstroUrl(dir, astro)}
                     target="_blank"
                   >
-                    {clearExtension(astro)}
+                    {getPageTitle(dir, astro)}
                   </a>
                 </li>
               </>

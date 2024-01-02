@@ -1,0 +1,106 @@
+---
+import Layout from '@layouts/Layout.astro';
+---
+
+<!-- 响应式系统 -->
+<Layout>
+  <div></div>
+</Layout>
+
+<script>
+  interface ActiveEffect extends Function {
+    deps: Set<Function>[];
+  }
+
+  const bucket = new WeakMap<Object, any>();
+  let activeEffect: ActiveEffect;
+
+  const data: { [key in string | symbol]: any } = { text: 'hello world', ok: true };
+
+  const obj = new Proxy(data, {
+    get(target, key) {
+      track(target, key);
+
+      return target[key];
+    },
+    set(target, key, newVal) {
+      target[key] = newVal;
+      trigger(target, key);
+
+      return true;
+    },
+  });
+
+  function effect(fn: Function) {
+    const effectFn: ActiveEffect = () => {
+      // 函数清除工作
+      cleanup(effectFn);
+      // 当调用 effect 注册副作用函数时，将副作用函数 fn 赋值给 activeEffect
+      activeEffect = effectFn;
+      // 执行副作用函数
+      fn();
+    };
+    effectFn.deps = [];
+    effectFn();
+  }
+
+  // 依赖收集函数
+  function track(target: object, key: string | symbol) {
+    if (!activeEffect) return;
+
+    let depsMap = bucket.get(target);
+    if (!depsMap) {
+      bucket.set(target, (depsMap = new Map<string | symbol, Set<Function>>()));
+    }
+    let deps = depsMap.get(key);
+    if (!deps) {
+      depsMap.set(key, (deps = new Set()));
+    }
+
+    deps.add(activeEffect);
+
+    activeEffect.deps.push(deps);
+  }
+
+  // 触发依赖
+  function trigger(target: object, key: string | symbol) {
+    let depsMap = bucket.get(target);
+    if (!depsMap) return;
+    const effects = depsMap.get(key);
+
+    const effectsToRun = new Set<any>(effects);
+    effectsToRun.forEach((fn) => fn());
+  }
+
+  function cleanup(effectFn) {
+    for (let i = 0; i < effectFn.deps.length; i++) {
+      const deps = effectFn.deps[i];
+      deps.delete(effectFn);
+    }
+    effectFn.deps.length = 0;
+  }
+
+  effect(
+    (() => {
+      let renderNumber = 1;
+      return () => {
+        document.body.innerHTML = `${obj.ok ? obj.text : 'not'} 渲染次数${renderNumber++}`;
+      };
+    })()
+  );
+
+  setTimeout(() => {
+    obj.text = 'hello vue';
+  }, 1000);
+
+  setTimeout(() => {
+    obj.ok = false;
+  }, 2000);
+
+  setTimeout(() => {
+    obj.text = '111';
+  }, 3000);
+  setTimeout(() => {
+    obj.text = '111';
+  }, 4000);
+</script>

@@ -1,4 +1,11 @@
-<div></div>
+---
+import Layout from '@layouts/Layout.astro';
+---
+
+<!-- 副作用函数 -->
+<Layout>
+  <div></div>
+</Layout>
 
 <script>
   const bucket = new Set<Function>();
@@ -10,9 +17,9 @@
       return target[key];
     },
     set(target, key, newVal) {
-      target[key] = newVal
-      bucket.forEach(fn => fn())
-      return true
+      target[key] = newVal;
+      bucket.forEach((fn) => fn());
+      return true;
     },
   });
 
