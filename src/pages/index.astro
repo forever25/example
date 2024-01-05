@@ -29,7 +29,7 @@ function getAstroUrl(...astro: string[]) {
 }
 ---
 
-<Layout>
+<Layout title="首页">
   <div class="mx-auto mt-10 w-[800px]">
     {
       pageDirs.map((dir, index) => (
@@ -39,11 +39,7 @@ function getAstroUrl(...astro: string[]) {
             {files[index].map((astro) => (
               <>
                 <li class="mx-3 my-1">
-                  <a
-                    class="text-blue-800 hover:text-blue-500 decoration-blue-500 hover:underline"
-                    href={getAstroUrl(dir, astro)}
-                    target="_blank"
-                  >
+                  <a class="link" href={getAstroUrl(dir, astro)} target="_blank">
                     {getPageTitle(dir, astro)}
                   </a>
                 </li>

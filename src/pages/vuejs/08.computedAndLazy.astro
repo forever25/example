@@ -2,21 +2,26 @@
 import Layout from '@layouts/Layout.astro';
 ---
 
-<!-- 嵌套的effect与effect栈 -->
-<Layout title="嵌套的effect与effect栈">
+<!-- 计算属性 computed 与 lazy -->
+<Layout title="计算属性 computed 与 lazy">
   <div></div>
 </Layout>
 
 <script>
+  interface EffectOptions extends Object {
+    scheduler?: (fn?: Function) => void;
+    lazy?: boolean;
+  }
   interface ActiveEffect extends Function {
     deps: Set<Function>[];
+    options: EffectOptions;
   }
 
   const bucket = new WeakMap<Object, any>();
   let activeEffect: ActiveEffect;
   const effectStack = [];
 
-  const data: { [key in string | symbol]: any } = { text: 'hello world', ok: true };
+  const data: { [key in string | symbol]: any } = { text: 'hello world', ok: true, number: 1 };
 
   const obj = new Proxy(data, {
     get(target, key) {
@@ -32,20 +37,25 @@ import Layout from '@layouts/Layout.astro';
     },
   });
 
-  function effect(fn: Function) {
+  function effect(fn: Function, options: EffectOptions = {}) {
     const effectFn: ActiveEffect = () => {
       // 函数清除工作
       cleanup(effectFn);
       // 当调用 effect 注册副作用函数时，将副作用函数 fn 赋值给 activeEffect
       activeEffect = effectFn;
       effectStack.push(effectFn);
-      // 执行副作用函数
-      fn();
+      // 执行副作用函数, 保存返回值
+      const res = fn();
       effectStack.pop();
       activeEffect = effectStack.at(-1);
+      return res;
     };
+    effectFn.options = options;
     effectFn.deps = [];
-    effectFn();
+    if (!effectFn.options.lazy) {
+      effectFn();
+    }
+    return effectFn;
   }
 
   // 依赖收集函数
@@ -72,8 +82,21 @@ import Layout from '@layouts/Layout.astro';
     if (!depsMap) return;
     const effects = depsMap.get(key);
 
-    const effectsToRun = new Set<any>(effects);
-    effectsToRun.forEach((fn) => fn());
+    const effectsToRun = new Set<any>();
+    effects &&
+      effects.forEach((fn) => {
+        if (activeEffect !== fn) {
+          effectsToRun.add(fn);
+        }
+      });
+
+    effectsToRun.forEach((effectFn) => {
+      if (effectFn.options.scheduler) {
+        effectFn.options.scheduler(effectFn);
+      } else {
+        effectFn();
+      }
+    });
   }
 
   function cleanup(effectFn) {
@@ -84,21 +107,42 @@ import Layout from '@layouts/Layout.astro';
     effectFn.deps.length = 0;
   }
 
-  effect(() => {
-    obj.text;
-    console.log('fn1执行');
-    effect(() => {
-      obj.ok;
-      console.log('fn2执行');
+  function computed(getter) {
+    let value;
+    let dirty = true;
+    const effectFn = effect(getter, {
+      lazy: true,
+      scheduler() {
+        if (!dirty) {
+          dirty = true;
+          trigger(obj, 'value');
+        }
+      },
     });
+    const obj = {
+      get value() {
+        if (dirty) {
+          value = effectFn();
+          dirty = false;
+        }
+        track(obj, 'value');
+        return value;
+      },
+    };
+
+    return obj;
+  }
+
+  const sumStr = computed(() => {
+    console.log('执行');
+    return obj.number + obj.text;
   });
 
-  setTimeout(() => {
-    // obj.text = 'hello vue';
-    obj.ok = false;
-  }, 1000);
+  effect(() => {
+    console.log(sumStr.value);
+  });
 
-  // setTimeout(() => {
-  //   obj.ok = false;
-  // }, 2000);
+  obj.number++;
+  obj.number++;
+  obj.number++;
 </script>

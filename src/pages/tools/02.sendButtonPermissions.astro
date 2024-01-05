@@ -1,0 +1,25 @@
+---
+import { Code } from 'astro:components';
+import Layout from '@layouts/Layout.astro';
+---
+
+<!-- 发送按钮权限请求 -->
+<Layout title="发送按钮权限请求">
+  <div class="grid grid-cols-4 gap-4 mt-2 px-4">
+    <form class="grid grid-flow-row gap-2">
+      <input type="text" placeholder="名称" class="input input-bordered input-primary w-full max-w-xs" />
+
+      <select class="select select-primary w-full max-w-xs">
+        <option>Game of Thrones</option>
+        <option>Lost</option>
+        <option>Breaking Bad</option>
+        <option>Walking Dead</option>
+      </select>
+    </form>
+    <div class="col-span-3">
+      <Code code="" lang="json" theme="light-plus" />
+    </div>
+  </div>
+</Layout>
+
+<script></script>

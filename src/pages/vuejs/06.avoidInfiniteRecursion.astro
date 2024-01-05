@@ -2,8 +2,8 @@
 import Layout from '@layouts/Layout.astro';
 ---
 
-<!-- 嵌套的effect与effect栈 -->
-<Layout title="嵌套的effect与effect栈">
+<!-- 避免无限递归循环 -->
+<Layout title="避免无限递归循环">
   <div></div>
 </Layout>
 
@@ -72,8 +72,14 @@ import Layout from '@layouts/Layout.astro';
     if (!depsMap) return;
     const effects = depsMap.get(key);
 
-    const effectsToRun = new Set<any>(effects);
-    effectsToRun.forEach((fn) => fn());
+    const effectsToRun = new Set<any>();
+    effects &&
+      effects.forEach((fn) => {
+        if (activeEffect !== fn) {
+          effectsToRun.add(fn());
+        }
+      });
+      effectsToRun.forEach(effectFn => effectFn())
   }
 
   function cleanup(effectFn) {
@@ -85,20 +91,7 @@ import Layout from '@layouts/Layout.astro';
   }
 
   effect(() => {
-    obj.text;
-    console.log('fn1执行');
-    effect(() => {
-      obj.ok;
-      console.log('fn2执行');
-    });
+    obj.text += '1';
+    document.body.innerText = obj.text
   });
-
-  setTimeout(() => {
-    // obj.text = 'hello vue';
-    obj.ok = false;
-  }, 1000);
-
-  // setTimeout(() => {
-  //   obj.ok = false;
-  // }, 2000);
 </script>
